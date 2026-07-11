@@ -650,7 +650,7 @@ window.detail_etk=id=>{const e=etkCache.find(x=>x.id===id);if(!e)return;const[dt
   const ck=e.checklist||[];
   const ckHtml=ck.length?`<div class="dsec"><div class="dsec-t">Checklist (${ck.filter(c=>c.tamam).length}/${ck.length})</div>${ck.map(c=>`<div class="chk-view ${c.tamam?"done":""}">${c.tamam?"☑":"☐"} ${esc(c.metin)}</div>`).join("")}</div>`:"";
   const ar=e.arama||[];
-  const arHtml=ar.length?`<div class="dsec"><div class="dsec-t">Arama Listesi · ${ar.filter(a=>a.arandi).length}/${ar.length} arandı · ${ar.filter(a=>a.gelecek).length} gelecek</div>${ar.map(a=>`<div class="arama-view"><span class="nm">${esc(a.ad_soyad)}</span><span class="pill ${a.arandi?"b-green":"b-gray"}">${a.arandi?"Arandı":"Aranmadı"}</span><span class="pill ${a.gelecek?"b-blue":"b-red"}">${a.gelecek?"Gelecek":"Gelmeyecek"}</span></div>`).join("")}</div>`:"";
+  const arHtml=ar.length?`<div class="dsec"><div class="dsec-t">Arama Listesi · ${ar.filter(a=>a.arandi).length}/${ar.length} arandı · ${ar.filter(a=>a.gelecek).length} gelecek</div>${ar.map(a=>`<div class="arama-view"><span class="nm">${esc(a.ad_soyad)}</span><span class="pill ${a.arandi?"b-green":"b-gray"}">${a.arandi?"Arandı":"Aranmadı"}</span><span class="pill ${a.gelecek?"b-green":"b-gray"}">${a.gelecek?"Gelecek":"Seçilmedi"}</span></div>`).join("")}</div>`:"";
   openModal(`<div class="modal-head"><h2>${esc(e.baslik)}</h2><button class="close-x" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       ${drow("Durum",`<span class="badge ${cl}">${dt}</span>`)}
@@ -676,15 +676,22 @@ window.detail_not=id=>{const n=notCache.find(x=>x.id===id);if(!n)return;
     </div><div class="modal-foot">${detailFoot("not",n)}</div>`)};
 
 window.detail_dok=id=>{const d=dokCache.find(x=>x.id===id);if(!d)return;
+  const u=dokUrl(d);
+  const preview=(u&&isImage(d))?`<div class="dsec" style="padding:10px"><img src="${u}" alt="${esc(d.ad)}" style="width:100%;border-radius:10px;display:block"/></div>`:"";
+  const dosyaRow=u
+    ? drow("Dosya",`<a href="${u}" target="_blank" rel="noopener" download="${esc(d.ad)}" style="color:var(--brand);font-weight:700">${esc(d.ad)}</a>`)
+    : drow("Dosya",'<span style="color:var(--muted)">Dosya yüklenmemiş</span>');
+  const acBtn=u?`<a class="btn btn-primary" href="${u}" target="_blank" rel="noopener" download="${esc(d.ad)}" style="text-decoration:none">Aç / İndir</a>`:"";
   openModal(`<div class="modal-head"><h2>${esc(d.ad)}</h2><button class="close-x" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       ${drow("Tür",`<span class="badge b-gray">${esc(d.tur||"dosya")}</span>`)}
       ${drow("Etiket",d.etiket?`<span class="tag">${esc(d.etiket)}</span>`:"-")}
       ${drow("Açıklama",esc(d.aciklama||"-"))}
-      ${d.dosya_yolu?drow("Dosya",esc(d.dosya_yolu)):""}
+      ${dosyaRow}
       ${drow("Oluşturan",whoCell(d.created_by))}
       ${drow("Oluşturulma",fmtDate(d.created_at))}
-    </div><div class="modal-foot">${detailFoot("dok",d)}</div>`)};
+      ${preview}
+    </div><div class="modal-foot">${acBtn}${detailFoot("dok",d)}</div>`)};
 
 /* =====================================================================
    ROL ARAYÜZÜ
@@ -898,10 +905,20 @@ async function saveNot(id){const b=$("#n_baslik").value.trim();if(!b)return toas
    DOKUMANLAR
 ===================================================================== */
 let dokCache=[];
+// Dosyayı açılabilir bir URL'e çevir (bulutta public URL, demoda dataURL)
+function dokUrl(d){
+  if(d.dosya_url)return d.dosya_url;                       // demo: tarayıcıda saklanan dataURL
+  if(LIVE&&d.dosya_yolu){try{return sb.storage.from("dokumanlar").getPublicUrl(d.dosya_yolu).data.publicUrl}catch(e){return null}}
+  return null;
+}
+function isImage(d){return /(png|jpe?g|gif|webp|svg|bmp)/i.test(d.tur||"")||/^data:image/.test(d.dosya_url||"")||/\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(d.dosya_yolu||"")}
+function readFileDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
 async function renderDok(){$("#tblDok").innerHTML=skelRows(7);dokCache=await DB.list("dokumanlar");
-  $("#tblDok").innerHTML=dokCache.map(d=>`<tr class="rowc" onclick="detail_dok('${d.id}')"><td><b>${esc(d.ad)}</b></td><td style="color:var(--muted)">${esc((d.aciklama||"").slice(0,50))}</td>
+  $("#tblDok").innerHTML=dokCache.map(d=>{const u=dokUrl(d);
+    const ad=u?`<a href="${u}" target="_blank" rel="noopener" download="${esc(d.ad)}" onclick="event.stopPropagation()" style="color:var(--brand);font-weight:700;text-decoration:none">${esc(d.ad)}</a>`:`<b>${esc(d.ad)}</b>`;
+    return `<tr class="rowc" onclick="detail_dok('${d.id}')"><td>${ad}</td><td style="color:var(--muted)">${esc((d.aciklama||"").slice(0,50))}</td>
     <td>${d.etiket?`<span class="tag">${esc(d.etiket)}</span>`:"-"}</td><td><span class="badge b-gray">${esc(d.tur||"dosya")}</span></td>
-    <td>${whoCell(d.created_by)}</td><td>${fmtDate(d.created_at)}</td><td>${actBtns("dok",d)}</td></tr>`).join("")||emptyRow(7);labelize("tblDok")}
+    <td>${whoCell(d.created_by)}</td><td>${fmtDate(d.created_at)}</td><td>${actBtns("dok",d)}</td></tr>`}).join("")||emptyRow(7);labelize("tblDok")}
 function dokForm(d={}){return `<div class="modal-head"><h2>${d.id?"Dökümanı Düzenle":"Döküman Ekle"}</h2><button class="close-x" onclick="closeModal()">✕</button></div>
   <div class="modal-body">
     <div class="field"><label>Ad *</label><input id="d_ad" value="${esc(d.ad)}" placeholder="Dosya adı"/></div>
@@ -911,7 +928,7 @@ function dokForm(d={}){return `<div class="modal-head"><h2>${d.id?"Dökümanı D
       <div class="field"><label>Tür</label><input id="d_tur" value="${esc(d.tur)}" placeholder="pdf, docx, resim..."/></div>
     </div>
     <div class="field"><label>Dosya (opsiyonel)</label><input type="file" id="d_file" onchange="if(this.files[0]){document.getElementById('d_ad').value=document.getElementById('d_ad').value||this.files[0].name;document.getElementById('d_tur').value=this.files[0].name.split('.').pop()}"/>
-      <small style="color:var(--muted);font-size:12px">Demo modda dosya adı kaydedilir. Supabase'de Storage'a yüklenir.</small></div>
+      <small style="color:var(--muted);font-size:12px">Yüklenen dosya, adına tıklanarak açılıp indirilebilir. (Demo modda en fazla 3MB tarayıcıda saklanır.)</small></div>
   </div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Vazgeç</button>
   <button class="btn btn-primary" onclick="saveDok('${d.id||""}')">Kaydet</button></div>`}
 function openDok(){openModal(dokForm())}
@@ -927,6 +944,9 @@ async function saveDok(id){const a=$("#d_ad").value.trim();if(!a)return toast("A
       const{error:upErr}=await sb.storage.from("dokumanlar").upload(path,file);
       if(upErr)throw upErr;
       row.dosya_yolu=path;row.boyut=file.size;row.tur=row.tur||file.type;
+    }else if(file){ // demo: küçük dosyayı tarayıcıda (dataURL) sakla
+      if(file.size>3*1024*1024){toast("Demo modda en fazla 3MB dosya saklanır (yalnızca bilgiler kaydedildi)","err");}
+      else{row.dosya_url=await readFileDataURL(file);row.boyut=file.size;row.tur=row.tur||file.name.split(".").pop();}
     }
     if(id)await DB.update("dokumanlar",id,row);else await DB.insert("dokumanlar",row);
     closeModal();toast(id?"Güncellendi":"Döküman eklendi","ok");renderDok();
