@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#5b6cf9" />
+<link rel="icon" href="logo.png" />
+<link rel="apple-touch-icon" href="logo.png" />
+<title>Sebinsiad-OSB · Yönetim Paneli</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7fc; --card:#ffffff; --ink:#161a33; --muted:#8990b3;
+  --line:#edeef7; --brand:#5b6cf9; --brand2:#8f5bf9; --brand-soft:#eef0ff;
+  --green:#22c55e; --amber:#f59e0b; --red:#ef4444; --sky:#38bdf8;
+  --shadow:0 12px 34px -14px rgba(45,55,120,.20);
+  --shadow-sm:0 4px 14px -6px rgba(45,55,120,.14);
+  --radius:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;letter-spacing:-.011em}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit;font-size:14px}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#d6dae9;border-radius:9px}
+
+/* ---------- Layout ---------- */
+.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.sidebar{background:var(--card);border-right:1px solid var(--line);padding:26px 18px;
+  position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:8px}
+.logo{display:flex;align-items:center;gap:11px;font-weight:800;font-size:19px;padding:4px 8px 22px}
+.logo .mark{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--brand),var(--brand2));
+  display:grid;place-items:center;color:#fff;font-size:17px;box-shadow:0 6px 16px -4px rgba(91,108,249,.6)}
+.logo small{display:block;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:13px;color:var(--muted);
+  font-weight:600;font-size:14.5px;transition:.22s;width:100%;text-align:left}
+.nav-item svg{width:19px;height:19px;flex:none}
+.nav-item:hover{background:var(--brand-soft);color:var(--brand);transform:translateX(3px)}
+.nav-item.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;
+  box-shadow:0 8px 20px -6px rgba(91,108,249,.6)}
+.side-foot{margin-top:auto;font-size:11.5px;color:var(--muted);padding:10px 12px;border-top:1px solid var(--line)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+
+.main{padding:26px 32px 60px;max-width:1400px;width:100%}
+.topbar{display:flex;align-items:center;gap:18px;margin-bottom:26px}
+.search{flex:1;max-width:420px;position:relative}
+.search input{width:100%;padding:12px 16px 12px 42px;border:1px solid var(--line);border-radius:13px;
+  background:var(--card);outline:none;transition:.2s}
+.search input:focus{border-color:var(--brand);box-shadow:0 0 0 4px var(--brand-soft)}
+.search svg{position:absolute;left:14px;top:12px;width:18px;height:18px;color:var(--muted)}
+.top-user{margin-left:auto;display:flex;align-items:center;gap:11px;background:var(--card);
+  padding:7px 14px 7px 7px;border-radius:40px;border:1px solid var(--line)}
+.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--brand2),var(--brand));
+  color:#fff;display:grid;place-items:center;font-weight:700}
+.top-user b{font-size:13.5px;display:block}.top-user span{font-size:11.5px;color:var(--muted)}
+
+.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px}
+.page-head h1{font-size:24px;font-weight:800}
+.page-head p{color:var(--muted);font-size:13.5px;margin-top:3px}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:12px;font-weight:700;
+  font-size:14px;transition:.2s}
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;
+  box-shadow:0 8px 20px -6px rgba(91,108,249,.55)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 26px -6px rgba(91,108,249,.7)}
+.btn-ghost{background:var(--brand-soft);color:var(--brand)}
+.btn-ghost:hover{background:#e3e6ff}
+.btn svg{width:17px;height:17px}
+
+/* ---------- Cards / grid ---------- */
+.grid{display:grid;gap:20px}
+.stats{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.stat{padding:22px;position:relative;overflow:hidden;animation:rise .5s both}
+.stat .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;margin-bottom:16px}
+.stat .ic svg{width:23px;height:23px;color:#fff}
+.stat h3{font-size:29px;font-weight:800}
+.stat label{color:var(--muted);font-size:13px;font-weight:600}
+.stat .trend{position:absolute;top:22px;right:22px;font-size:12px;font-weight:700;color:var(--green)}
+.stat.blue .ic{background:linear-gradient(135deg,var(--brand),var(--brand2))}
+.stat.grn .ic{background:linear-gradient(135deg,#22c55e,#16a34a)}
+.stat.amb .ic{background:linear-gradient(135deg,#f59e0b,#f97316)}
+.stat.sky .ic{background:linear-gradient(135deg,#38bdf8,#0ea5e9)}
+
+.dash-row{grid-template-columns:1.7fr 1fr;margin-top:20px}
+.panel{padding:22px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-head h2{font-size:16.5px;font-weight:800}
+
+/* ---------- Table ---------- */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);
+  padding:12px 14px;border-bottom:1px solid var(--line)}
+td{padding:14px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+tbody tr{transition:.15s}
+tbody tr:hover{background:var(--brand-soft)}
+tbody tr{animation:fade .4s both}
+.badge{display:inline-block;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:700}
+.b-green{background:#dcfce7;color:#15803d}.b-amber{background:#fef3c7;color:#b45309}
+.b-blue{background:#e0e7ff;color:#4338ca}.b-gray{background:#eef1f6;color:#64748b}
+.b-red{background:#fee2e2;color:#b91c1c}.b-sky{background:#e0f2fe;color:#0369a1}
+.tag{display:inline-block;padding:3px 10px;border-radius:8px;background:var(--brand-soft);color:var(--brand);
+  font-size:11.5px;font-weight:700}
+.row-act{display:flex;gap:8px}
+.icon-btn{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;transition:.2s;background:#f3f4fb;color:var(--muted)}
+.icon-btn svg{width:16px;height:16px}
+.icon-btn.edit:hover{background:var(--brand-soft);color:var(--brand)}
+.icon-btn.del:hover{background:#fee2e2;color:var(--red)}
+
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty svg{width:52px;height:52px;opacity:.35;margin-bottom:12px}
+
+/* ---------- Modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(30,35,64,.5);backdrop-filter:blur(4px);z-index:50;
+  display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.overlay.open{display:flex;animation:fade .25s}
+.modal{background:var(--card);border-radius:22px;width:100%;max-width:560px;box-shadow:0 30px 80px -20px rgba(30,35,64,.5);
+  animation:pop .3s cubic-bezier(.2,1.1,.4,1);overflow:hidden}
+.modal.wide{max-width:720px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:22px 24px;border-bottom:1px solid var(--line)}
+.modal-head h2{font-size:18px;font-weight:800}
+.modal-body{padding:22px 24px;max-height:65vh;overflow-y:auto}
+.modal-foot{padding:18px 24px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
+.field input,.field select,.field textarea{width:100%;padding:11px 14px;border:1px solid var(--line);
+  border-radius:11px;outline:none;transition:.2s;background:#fbfcff}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand);box-shadow:0 0 0 4px var(--brand-soft)}
+.field textarea{min-height:84px;resize:vertical}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.close-x{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--muted);transition:.2s}
+.close-x:hover{background:#f3f4fb;color:var(--ink)}
+
+/* checklist in modal */
+.chk-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);
+  border-radius:10px;margin-bottom:8px;background:#fbfcff;animation:fade .3s}
+.chk-item input[type=text]{border:none;background:none;flex:1;padding:0}
+.chk-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--brand);cursor:pointer}
+.chk-item .rm{color:var(--muted);cursor:pointer;font-size:18px;line-height:1}
+.chk-item.done input[type=text]{text-decoration:line-through;color:var(--muted)}
+
+/* toast */
+.toast-wrap{position:fixed;bottom:26px;right:26px;z-index:80;display:flex;flex-direction:column;gap:10px}
+.toast{background:var(--ink);color:#fff;padding:13px 18px;border-radius:12px;font-size:14px;font-weight:600;
+  box-shadow:0 14px 30px -10px rgba(0,0,0,.4);animation:slideIn .3s;display:flex;align-items:center;gap:9px}
+.toast.ok{background:linear-gradient(135deg,#16a34a,#22c55e)}
+.toast.err{background:linear-gradient(135deg,#dc2626,#ef4444)}
+
+/* connection banner */
+.conn{display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:13px;margin-bottom:20px;
+  font-size:13.5px;font-weight:600;animation:fade .4s}
+.conn.demo{background:#fef3c7;color:#92400e}
+.conn.live{background:#dcfce7;color:#166534}
+.conn button{margin-left:auto;font-weight:700;text-decoration:underline;color:inherit}
+
+/* views */
+.view{display:none}.view.active{display:block;animation:fade .35s}
+
+/* animations */
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:none}}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+.stat:nth-child(1){animation-delay:.02s}.stat:nth-child(2){animation-delay:.08s}
+.stat:nth-child(3){animation-delay:.14s}.stat:nth-child(4){animation-delay:.2s}
+
+@media(max-width:900px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:-260px;z-index:60;transition:.3s;width:250px}
+  .sidebar.show{left:0}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .dash-row{grid-template-columns:1fr}
+  .menu-btn{display:grid!important}
+}
+.menu-btn{display:none;width:42px;height:42px;border-radius:12px;background:var(--card);border:1px solid var(--line);
+  place-items:center}
+
+/* ===================== PROFESYONEL CİLA ===================== */
+body{background:radial-gradient(1200px 600px at 100% -10%,#eef0ff 0%,transparent 55%),var(--bg)}
+.app{opacity:0;transition:opacity .5s}
+.app.ready{opacity:1}
+.sidebar{backdrop-filter:blur(10px);background:rgba(255,255,255,.82);gap:6px}
+.nav-item{position:relative;transition:transform .25s cubic-bezier(.2,.9,.3,1.2),background .2s,color .2s}
+.nav-item.active::before{content:"";position:absolute;left:-18px;top:50%;transform:translateY(-50%);
+  width:4px;height:22px;border-radius:0 4px 4px 0;background:#fff;opacity:.9}
+.card{transition:transform .3s cubic-bezier(.2,.9,.3,1.2),box-shadow .3s}
+.stat{cursor:default}
+.stat:hover{transform:translateY(-4px);box-shadow:0 22px 44px -20px rgba(45,55,120,.34)}
+.stat .ic{box-shadow:0 10px 22px -8px rgba(91,108,249,.5)}
+.stat h3{letter-spacing:-.02em;background:linear-gradient(120deg,var(--ink),#4b5178);-webkit-background-clip:text;background-clip:text}
+.panel{transition:box-shadow .3s}
+.panel:hover{box-shadow:0 20px 44px -22px rgba(45,55,120,.28)}
+.btn-primary{position:relative;overflow:hidden}
+.btn-primary::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);
+  transform:translateX(-120%)}
+.btn-primary:hover::after{animation:shine .8s}
+@keyframes shine{to{transform:translateX(120%)}}
+.icon-btn{transition:transform .2s,background .2s,color .2s}
+.icon-btn:hover{transform:translateY(-2px)}
+tbody tr{transition:background .18s,box-shadow .18s}
+tbody tr:hover{box-shadow:inset 3px 0 0 var(--brand)}
+.badge{transition:transform .2s}.badge:hover{transform:scale(1.06)}
+.top-user{box-shadow:var(--shadow-sm)}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+/* ===================== LOGIN EKRANI ===================== */
+#loginScreen{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+  padding:24px;overflow:hidden;background:#0e1030}
+#loginScreen .bg{position:absolute;inset:0;background:
+  radial-gradient(900px 500px at 15% 20%,rgba(91,108,249,.55),transparent 60%),
+  radial-gradient(800px 500px at 85% 80%,rgba(143,91,249,.5),transparent 60%),
+  radial-gradient(600px 400px at 70% 10%,rgba(56,189,248,.28),transparent 60%),#0e1030}
+#loginScreen .blob{position:absolute;border-radius:50%;filter:blur(40px);opacity:.5;animation:floaty 7s ease-in-out infinite}
+.login-card{position:relative;z-index:2;width:100%;max-width:410px;background:rgba(255,255,255,.97);
+  border-radius:26px;padding:38px 34px;box-shadow:0 40px 90px -30px rgba(0,0,0,.6);
+  animation:pop .5s cubic-bezier(.2,1.1,.4,1)}
+.login-brand{display:flex;align-items:center;gap:12px;margin-bottom:26px}
+.login-brand .mark{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--brand),var(--brand2));
+  display:grid;place-items:center;color:#fff;font-weight:800;font-size:22px;box-shadow:0 10px 24px -6px rgba(91,108,249,.6);
+  animation:floaty 5s ease-in-out infinite}
+.login-brand b{font-size:20px;font-weight:800;display:block}
+.login-brand small{color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.4px}
+.login-card h1{font-size:22px;font-weight:800;margin-bottom:6px}
+.login-card p.sub{color:var(--muted);font-size:13.5px;margin-bottom:24px}
+.login-card .field{margin-bottom:16px}
+.login-card input{padding:13px 15px;font-size:15px}
+.login-btn{width:100%;justify-content:center;padding:14px;font-size:15px;margin-top:6px}
+.login-err{background:#fee2e2;color:#b91c1c;padding:11px 14px;border-radius:11px;font-size:13px;font-weight:600;
+  margin-bottom:16px;display:none;animation:fade .3s}
+.login-err.show{display:block}
+.login-foot{margin-top:20px;text-align:center;font-size:12px;color:var(--muted)}
+.spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;
+  animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.logout-btn{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:#f3f4fb;color:var(--muted);
+  transition:.2s;margin-left:4px}
+.logout-btn:hover{background:#fee2e2;color:var(--red)}
+.logout-btn svg{width:18px;height:18px}
+
+/* ===================== LOGO GÖRÜNTÜSÜ ===================== */
+.mark img{width:100%;height:100%;object-fit:contain;border-radius:inherit;padding:3px;display:block}
+
+/* ===================== SHIMMER / SKELETON ===================== */
+.sk{display:inline-block;height:14px;border-radius:7px;
+  background:linear-gradient(90deg,#eceef6 25%,#f7f8fd 37%,#eceef6 63%);
+  background-size:400% 100%;animation:shim 1.3s ease infinite}
+.sk-lg{height:26px;border-radius:9px}
+@keyframes shim{0%{background-position:100% 0}100%{background-position:0 0}}
+.sk-row td{padding:16px 14px}
+
+/* ===================== OLUŞTURAN + TIKLANABİLİR SATIR + DETAY ===================== */
+.rowc{cursor:pointer}
+.who{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink)}
+.who-av{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--brand2),var(--brand));
+  color:#fff;display:grid;place-items:center;font-size:10.5px;font-weight:700;flex:none}
+.drow{display:flex;gap:16px;padding:11px 0;border-bottom:1px solid var(--line)}
+.drow:last-child{border-bottom:none}
+.dk{flex:none;width:130px;color:var(--muted);font-size:13px;font-weight:600}
+.dv{flex:1;font-size:14px;line-height:1.5}
+.dsec{margin-top:14px;background:#fbfcff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.dsec-t{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.chk-view{padding:6px 0;font-size:14px}
+.chk-view.done{color:var(--muted);text-decoration:line-through}
+
+/* ===================== MOBİL / RESPONSIVE ===================== */
+.bottomnav{display:none}
+.scrim{position:fixed;inset:0;background:rgba(20,26,51,.45);backdrop-filter:blur(2px);z-index:55;opacity:0;
+  pointer-events:none;transition:opacity .3s}
+.scrim.show{opacity:1;pointer-events:auto}
+
+/* Tablet: yan menü çekmece olur */
+@media(max-width:900px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:-280px;top:0;z-index:60;width:260px;transition:left .3s cubic-bezier(.3,.8,.3,1);box-shadow:0 20px 60px -20px rgba(0,0,0,.4)}
+  .sidebar.show{left:0}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .dash-row{grid-template-columns:1fr}
+  .menu-btn{display:grid!important}
+}
+
+/* Telefon: alt gezinme + kart tablolar + alttan açılan modal */
+@media(max-width:640px){
+  body{background:var(--bg)}
+  .sidebar,.menu-btn{display:none!important}
+  .main{padding:16px 13px 92px}
+  .topbar{gap:9px;margin-bottom:18px}
+  .search{max-width:none}
+  .search input{padding:11px 14px 11px 40px}
+  .top-user{padding:5px;gap:0}
+  .top-user>div:not(.avatar){display:none}
+  #roleBadge{display:none!important}
+  .page-head{width:100%}
+  .page-head h1{font-size:20px}
+  .page-head .btn{width:100%;justify-content:center;padding:13px}
+  .stats{grid-template-columns:repeat(2,1fr);gap:12px}
+  .stat{padding:16px}
+  .stat h3{font-size:24px}
+  .stat .ic{width:40px;height:40px;margin-bottom:12px}
+  .stat .trend{display:none}
+  .grid{gap:14px}
+  .panel{padding:16px}
+
+  /* Tabloyu kart yığınına çevir */
+  .table-wrap{overflow:visible}
+  table,tbody,tr,td{display:block;width:100%}
+  thead{display:none}
+  tbody tr{margin-bottom:12px;border:1px solid var(--line);border-radius:16px;background:var(--card);
+    box-shadow:var(--shadow-sm);padding:4px 2px;animation:rise .35s both}
+  tbody tr:hover{box-shadow:var(--shadow-sm)}
+  td{display:flex;justify-content:space-between;align-items:center;gap:14px;text-align:right;
+    border:none;border-bottom:1px solid var(--line);padding:11px 15px;font-size:13.5px}
+  tr td:last-child{border-bottom:none}
+  td::before{content:attr(data-label);font-weight:600;color:var(--muted);font-size:12px;text-align:left;flex:none}
+  td:first-child{display:block;text-align:left;font-size:15.5px;padding:13px 15px 11px}
+  td:first-child::before{display:none}
+  .row-act{justify-content:flex-end}
+  .who{justify-content:flex-end}
+  .sk-row td{border-bottom:1px solid var(--line)}
+  .sk-row td::before{content:""}
+  .empty{padding:34px 16px}
+
+  /* Alt gezinme çubuğu */
+  .bottomnav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:45;
+    background:rgba(255,255,255,.96);backdrop-filter:blur(14px);border-top:1px solid var(--line);
+    padding:7px 4px calc(7px + env(safe-area-inset-bottom));justify-content:space-around;
+    box-shadow:0 -8px 24px -14px rgba(45,55,120,.3)}
+  .bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;
+    color:var(--muted);font-size:10px;font-weight:600;border-radius:12px;transition:color .2s,transform .2s}
+  .bn svg{width:22px;height:22px;transition:transform .2s}
+  .bn.active{color:var(--brand)}
+  .bn.active svg{transform:translateY(-2px) scale(1.08)}
+  .bn:active{transform:scale(.92)}
+
+  /* Modal: alttan açılan sheet */
+  .overlay{padding:0;align-items:flex-end}
+  .modal,.modal.wide{max-width:100%;border-radius:24px 24px 0 0;animation:sheet .34s cubic-bezier(.2,.9,.3,1)}
+  .modal-body{max-height:72vh}
+  .field-row{grid-template-columns:1fr}
+  .toast-wrap{left:14px;right:14px;bottom:calc(72px + env(safe-area-inset-bottom))}
+  .toast{width:100%}
+}
+@keyframes sheet{from{transform:translateY(100%)}to{transform:none}}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ======= LOGIN EKRANI ======= -->
+<div id="loginScreen">
+  <div class="bg"></div>
+  <div class="blob" style="width:260px;height:260px;background:#5b6cf9;top:12%;left:10%"></div>
+  <div class="blob" style="width:220px;height:220px;background:#8f5bf9;bottom:12%;right:12%;animation-delay:1.5s"></div>
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="mark"><img src="logo.png" alt="Sebinsiad-OSB" onerror="this.replaceWith(document.createTextNode('S'))"/></div>
+      <div><b>Sebinsiad</b><small>OSB · YÖNETİM PANELİ</small></div>
+    </div>
+    <h1>Tekrar hoş geldiniz</h1>
+    <p class="sub">Devam etmek için giriş yapın.</p>
+    <div class="login-err" id="loginErr"></div>
+    <form id="loginForm" autocomplete="on">
+      <div class="field"><label>E-posta</label><input type="email" id="li_email" placeholder="ornek@elektigo.com" required/></div>
+      <div class="field"><label>Şifre</label><input type="password" id="li_pass" placeholder="••••••••" required/></div>
+      <button type="submit" class="btn btn-primary login-btn" id="loginSubmit">Giriş Yap</button>
+    </form>
+    <div class="login-foot" id="loginFoot"></div>
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">
+      <div class="mark"><img src="logo.png" alt="Sebinsiad-OSB" onerror="this.replaceWith(document.createTextNode('S'))"/></div>
+      <div>Sebinsiad<small>OSB · Süreç</small></div>
+    </div>
+    <button class="nav-item active" data-nav="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      Ana Sayfa</button>
+    <button class="nav-item" data-nav="etkinlikler">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Etkinlikler</button>
+    <button class="nav-item" data-nav="notlar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M8 13h8M8 17h5"/></svg>
+      Notlar</button>
+    <button class="nav-item" data-nav="dokumanlar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4a2 2 0 0 1 2-2h6l2 3h6a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4z"/></svg>
+      Dökümanlar</button>
+    <button class="nav-item" data-nav="kullanicilar" id="navKul">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11"/></svg>
+      Kullanıcılar</button>
+    <div class="side-foot"><span class="dot" id="connDot" style="background:var(--amber)"></span><span id="connLabel">Demo modu</span></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <button class="menu-btn" onclick="toggleMenu()">
+        <svg viewBox="0 0 24 24" width="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="globalSearch" placeholder="Ara..." />
+      </div>
+      <div class="top-user">
+        <div class="avatar" id="uAvatar">S</div>
+        <div><b id="uName">Kullanıcı</b><span id="uMail">—</span></div>
+        <span class="badge" id="roleBadge" style="display:none;margin-left:2px"></span>
+      </div>
+      <button class="logout-btn" id="logoutBtn" title="Çıkış yap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
+    </div>
+
+    <div id="connBanner"></div>
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="page-head"><div><h1>Ana Sayfa</h1><p>Genel bakış ve son hareketler</p></div></div>
+      <div class="grid stats">
+        <div class="card stat blue"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div><h3 id="s-etk">0</h3><label>Toplam Etkinlik</label><span class="trend">↑ aktif</span></div>
+        <div class="card stat grn"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div><h3 id="s-tam">0</h3><label>Tamamlanan</label><span class="trend">✓</span></div>
+        <div class="card stat amb"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div><h3 id="s-not">0</h3><label>Notlar</label><span class="trend" style="color:var(--amber)">güncel</span></div>
+        <div class="card stat sky"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><h3 id="s-kul">0</h3><label>Kullanıcılar</label><span class="trend" style="color:var(--sky)">↑</span></div>
+      </div>
+      <div class="grid dash-row">
+        <div class="card panel">
+          <div class="panel-head"><h2>Etkinlik Türü Dağılımı</h2></div>
+          <canvas id="chartMain" height="150"></canvas>
+        </div>
+        <div class="card panel">
+          <div class="panel-head"><h2>Durum</h2></div>
+          <canvas id="chartDonut" height="150"></canvas>
+        </div>
+      </div>
+      <div class="card panel" style="margin-top:20px">
+        <div class="panel-head"><h2>Son Etkinlikler</h2><button class="btn btn-ghost" data-nav="etkinlikler">Tümünü gör</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Başlık</th><th>Konu</th><th>Tür</th><th>Bitiş</th><th>Durum</th></tr></thead><tbody id="dashRecent"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ETKINLIKLER -->
+    <section class="view" id="view-etkinlikler">
+      <div class="page-head"><div><h1>Etkinlikler</h1><p>Etkinlik listesi, checklist ve dökümanlar</p></div>
+        <button class="btn btn-primary" onclick="openEtkinlik()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Etkinlik Oluştur</button></div>
+      <div class="card panel"><div class="table-wrap"><table>
+        <thead><tr><th>Başlık</th><th>Konu Adı</th><th>Tür</th><th>Etiket</th><th>Bitiş</th><th>Durum</th><th>Checklist</th><th>Oluşturan</th><th></th></tr></thead>
+        <tbody id="tblEtk"></tbody></table></div></div>
+    </section>
+
+    <!-- NOTLAR -->
+    <section class="view" id="view-notlar">
+      <div class="page-head"><div><h1>Notlar</h1><p>Hızlı notlar ve hatırlatmalar</p></div>
+        <button class="btn btn-primary" onclick="openNot()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Not Ekle</button></div>
+      <div class="card panel"><div class="table-wrap"><table>
+        <thead><tr><th>Başlık</th><th>Açıklama</th><th>Etiket</th><th>Oluşturan</th><th>Tarih</th><th></th></tr></thead>
+        <tbody id="tblNot"></tbody></table></div></div>
+    </section>
+
+    <!-- DOKUMANLAR -->
+    <section class="view" id="view-dokumanlar">
+      <div class="page-head"><div><h1>Dökümanlar</h1><p>Yüklenebilir objeler ve dosyalar</p></div>
+        <button class="btn btn-primary" onclick="openDok()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Döküman Ekle</button></div>
+      <div class="card panel"><div class="table-wrap"><table>
+        <thead><tr><th>Ad</th><th>Açıklama</th><th>Etiket</th><th>Tür</th><th>Oluşturan</th><th>Tarih</th><th></th></tr></thead>
+        <tbody id="tblDok"></tbody></table></div></div>
+    </section>
+
+    <!-- KULLANICILAR -->
+    <section class="view" id="view-kullanicilar">
+      <div class="page-head"><div><h1>Kullanıcılar</h1><p>Kullanıcı oluşturma ve yönetimi</p></div>
+        <button class="btn btn-primary" onclick="openKul()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Kullanıcı Oluştur</button></div>
+      <div class="card panel"><div class="table-wrap"><table>
+        <thead><tr><th>Ad Soyad</th><th>E-posta</th><th>Rol</th><th>Telefon</th><th>Durum</th><th></th></tr></thead>
+        <tbody id="tblKul"></tbody></table></div></div>
+    </section>
+  </main>
+</div>
+
+<!-- ======= MOBİL ALT GEZİNME ======= -->
+<nav class="bottomnav" id="bottomNav">
+  <button class="bn active" data-nav="dashboard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span>Ana</span></button>
+  <button class="bn" data-nav="etkinlikler">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Etkinlik</span></button>
+  <button class="bn" data-nav="notlar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg><span>Notlar</span></button>
+  <button class="bn" data-nav="dokumanlar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4a2 2 0 0 1 2-2h6l2 3h6a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4z"/></svg><span>Döküman</span></button>
+  <button class="bn" data-nav="kullanicilar" id="bnKul">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Kullanıcı</span></button>
+</nav>
+<div class="scrim" id="scrim" onclick="toggleMenu(false)"></div>
+
+<!-- ======= MODALS ======= -->
+<div class="overlay" id="overlay"><div class="modal" id="modalBox"></div></div>
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+/* =====================================================================
+   YAPILANDIRMA — Supabase bilgilerinizi buraya girin.
+   Boş bırakırsanız uygulama otomatik olarak DEMO modunda (tarayıcı
+   hafızası / localStorage) çalışır. Supabase'e geçmek için schema.sql
+   dosyasını çalıştırıp aşağıdaki iki değeri doldurun.
+===================================================================== */
+const SUPABASE_URL = "https://ftqgajjeifwuucilunep.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0cWdhamplaWZ3dXVjaWx1bmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3ODgyMDksImV4cCI6MjA5OTM2NDIwOX0.oi72OzP8Fm0XZjyml-Z4gl62PYaU3QqdzJafIfIdt0M";
+
+/* =====================================================================
+   VERİ KATMANI — Supabase varsa onu, yoksa localStorage'ı kullanır.
+===================================================================== */
+let sb = null;
+const LIVE = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+if (LIVE) sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const LS_KEY = "sebinsiad_admin_db";
+const seed = {
+  kullanicilar:[
+    {id:uid(),ad_soyad:"Samet Yılmaz",email:"samet@elektigo.com",rol:"admin",telefon:"0532 000 00 00",durum:"aktif",created_at:now()},
+    {id:uid(),ad_soyad:"Ayşe Demir",email:"ayse@elektigo.com",rol:"yonetici",telefon:"",durum:"aktif",created_at:now()},
+  ],
+  etkinlikler:[
+    {id:uid(),baslik:"OSB Saha Denetimi",aciklama:"Aylık rutin saha denetimi",etiket:"denetim",konu_adi:"İş Güvenliği",etkinlik_turu:"denetim",tarih_bitis:addDays(7),durum:"planlandi",checklist:[{id:uid(),metin:"Ekipman kontrolü",tamam:true},{id:uid(),metin:"Rapor hazırla",tamam:false}],created_at:now()},
+    {id:uid(),baslik:"Yönetim Kurulu Toplantısı",aciklama:"Q3 değerlendirme",etiket:"toplanti",konu_adi:"Yönetim",etkinlik_turu:"toplanti",tarih_bitis:addDays(3),durum:"devam",checklist:[],created_at:now()},
+    {id:uid(),baslik:"Personel Eğitimi",aciklama:"Yangın tatbikatı eğitimi",etiket:"egitim",konu_adi:"İSG",etkinlik_turu:"egitim",tarih_bitis:addDays(-2),durum:"tamamlandi",checklist:[],created_at:now()},
+  ],
+  notlar:[
+    {id:uid(),baslik:"Elektrik altyapısı",aciklama:"B blok trafo bakımı planlanacak",etiket:"altyapi",created_at:now()},
+  ],
+  dokumanlar:[
+    {id:uid(),ad:"Denetim Formu.pdf",aciklama:"Standart saha denetim formu",etiket:"form",tur:"pdf",created_at:now()},
+  ],
+};
+
+function uid(){return "id-"+Math.random().toString(36).slice(2,10)+Date.now().toString(36)}
+function now(){return new Date().toISOString()}
+function addDays(d){const x=new Date();x.setDate(x.getDate()+d);return x.toISOString().slice(0,10)}
+
+function lsRead(){try{return JSON.parse(localStorage.getItem(LS_KEY))||null}catch(e){return null}}
+function lsWrite(db){localStorage.setItem(LS_KEY,JSON.stringify(db))}
+function lsInit(){let db=lsRead();if(!db){db=JSON.parse(JSON.stringify(seed));lsWrite(db)}return db}
+
+// unified API returning promises
+const DB = {
+  async list(table){
+    if(LIVE){const{data,error}=await sb.from(table).select("*").order("created_at",{ascending:false});if(error)throw error;return data}
+    const db=lsInit();return [...(db[table]||[])].reverse();
+  },
+  async insert(table,row){
+    if(LIVE){const{data,error}=await sb.from(table).insert(row).select().single();if(error)throw error;return data}
+    const db=lsInit();const r={id:uid(),created_at:now(),...row};db[table].push(r);lsWrite(db);return r;
+  },
+  async update(table,id,row){
+    if(LIVE){const{data,error}=await sb.from(table).update(row).eq("id",id).select().single();if(error)throw error;return data}
+    const db=lsInit();const i=db[table].findIndex(x=>x.id===id);if(i>-1){db[table][i]={...db[table][i],...row};lsWrite(db);return db[table][i]}
+  },
+  async remove(table,id){
+    if(LIVE){const{error}=await sb.from(table).delete().eq("id",id);if(error)throw error;return}
+    const db=lsInit();db[table]=db[table].filter(x=>x.id!==id);lsWrite(db);
+  }
+};
+
+/* =====================================================================
+   YARDIMCILAR
+===================================================================== */
+const $=s=>document.querySelector(s);
+const esc=s=>(s??"").toString().replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(msg,type=""){const t=document.createElement("div");t.className="toast "+type;
+  t.innerHTML=(type==="ok"?"✓ ":type==="err"?"⚠ ":"")+esc(msg);$("#toasts").appendChild(t);
+  setTimeout(()=>{t.style.opacity="0";t.style.transform="translateX(30px)";t.style.transition=".3s";setTimeout(()=>t.remove(),300)},2600)}
+function fmtDate(d){if(!d)return "-";const x=new Date(d);return isNaN(x)?"-":x.toLocaleDateString("tr-TR",{day:"2-digit",month:"short",year:"numeric"})}
+const turLabel={toplanti:"Toplantı",egitim:"Eğitim",denetim:"Denetim",diger:"Diğer"};
+const durumBadge={planlandi:["Planlandı","b-blue"],devam:["Devam Ediyor","b-amber"],tamamlandi:["Tamamlandı","b-green"]};
+const rolBadge={admin:["Admin","b-red"],yonetici:["Yönetici","b-blue"],kullanici:["Kullanıcı","b-gray"]};
+/* ---- ROL / YETKİ ---- */
+let currentUser={email:null,role:"kullanici"};
+const isPrivileged=()=>currentUser.role==="admin"||currentUser.role==="yonetici";
+// admin & yönetici her şeyi; kullanıcı yalnızca kendi oluşturduğunu düzenler/siler
+function canEdit(rec){return isPrivileged() || (rec && rec.created_by && rec.created_by===currentUser.email)}
+// "Oluşturan" hücresi
+function whoCell(email){if(!email)return '<span style="color:var(--muted);font-size:12.5px">—</span>';
+  const n=email.split("@")[0];const init=(n[0]||"?").toUpperCase();
+  return `<span class="who"><span class="who-av">${esc(init)}</span>${esc(email)}</span>`}
+
+function actBtns(kind,rec){
+  if(!canEdit(rec))return `<span style="color:var(--muted);font-size:13px" title="Sadece kendi kaydınızı düzenleyebilirsiniz">🔒</span>`;
+  const id=rec.id;
+  return `<div class="row-act">
+  <button class="icon-btn edit" onclick="event.stopPropagation();edit_${kind}('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+  <button class="icon-btn del" onclick="event.stopPropagation();del_${kind}('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></div>`}
+
+/* modal helpers */
+function openModal(html,wide){$("#modalBox").className="modal"+(wide?" wide":"");$("#modalBox").innerHTML=html;$("#overlay").classList.add("open")}
+function closeModal(){$("#overlay").classList.remove("open")}
+$("#overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeModal()});
+
+async function confirmDel(table,id,label,reload){
+  openModal(`<div class="modal-head"><h2>Silinsin mi?</h2><button class="close-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-body"><p style="color:var(--muted)">"<b style="color:var(--ink)">${esc(label)}</b>" kaydı kalıcı olarak silinecek. Bu işlem geri alınamaz.</p></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Vazgeç</button>
+    <button class="btn btn-primary" style="background:linear-gradient(135deg,#ef4444,#dc2626)" id="cfDel">Sil</button></div>`);
+  $("#cfDel").onclick=async()=>{try{await DB.remove(table,id);closeModal();toast("Silindi","ok");reload()}catch(e){toast(e.message,"err")}};
+}
+
+/* =====================================================================
+   DETAY GÖRÜNÜMÜ (satıra tıklayınca)
+===================================================================== */
+function drow(label,val){return `<div class="drow"><span class="dk">${esc(label)}</span><span class="dv">${val}</span></div>`}
+function detailFoot(kind,rec){return canEdit(rec)
+  ? `<button class="btn btn-ghost" onclick="closeModal()">Kapat</button><button class="btn btn-primary" onclick="closeModal();edit_${kind}('${rec.id}')">Düzenle</button>`
+  : `<button class="btn btn-primary" onclick="closeModal()">Kapat</button>`}
+
+window.detail_etk=id=>{const e=etkCache.find(x=>x.id===id);if(!e)return;const[dt,cl]=durumBadge[e.durum]||["-","b-gray"];
+  const ck=e.checklist||[];
+  const ckHtml=ck.length?`<div class="dsec"><div class="dsec-t">Checklist (${ck.filter(c=>c.tamam).length}/${ck.length})</div>${ck.map(c=>`<div class="chk-view ${c.tamam?"done":""}">${c.tamam?"☑":"☐"} ${esc(c.metin)}</div>`).join("")}</div>`:"";
+  openModal(`<div class="modal-head"><h2>${esc(e.baslik)}</h2><button class="close-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      ${drow("Durum",`<span class="badge ${cl}">${dt}</span>`)}
+      ${drow("Tür",esc(turLabel[e.etkinlik_turu]||"-"))}
+      ${drow("Konu Adı",esc(e.konu_adi||"-"))}
+      ${drow("Etiket",e.etiket?`<span class="tag">${esc(e.etiket)}</span>`:"-")}
+      ${drow("Bitiş Tarihi",fmtDate(e.tarih_bitis))}
+      ${drow("Açıklama",esc(e.aciklama||"-"))}
+      ${drow("Oluşturan",whoCell(e.created_by))}
+      ${drow("Oluşturulma",fmtDate(e.created_at))}
+      ${ckHtml}
+    </div><div class="modal-foot">${detailFoot("etk",e)}</div>`,true)};
+
+window.detail_not=id=>{const n=notCache.find(x=>x.id===id);if(!n)return;
+  openModal(`<div class="modal-head"><h2>${esc(n.baslik)}</h2><button class="close-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      ${drow("Etiket",n.etiket?`<span class="tag">${esc(n.etiket)}</span>`:"-")}
+      ${drow("Açıklama",esc(n.aciklama||"-"))}
+      ${drow("Oluşturan",whoCell(n.created_by))}
+      ${drow("Oluşturulma",fmtDate(n.created_at))}
+    </div><div class="modal-foot">${detailFoot("not",n)}</div>`)};
+
+window.detail_dok=id=>{const d=dokCache.find(x=>x.id===id);if(!d)return;
+  openModal(`<div class="modal-head"><h2>${esc(d.ad)}</h2><button class="close-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      ${drow("Tür",`<span class="badge b-gray">${esc(d.tur||"dosya")}</span>`)}
+      ${drow("Etiket",d.etiket?`<span class="tag">${esc(d.etiket)}</span>`:"-")}
+      ${drow("Açıklama",esc(d.aciklama||"-"))}
+      ${d.dosya_yolu?drow("Dosya",esc(d.dosya_yolu)):""}
+      ${drow("Oluşturan",whoCell(d.created_by))}
+      ${drow("Oluşturulma",fmtDate(d.created_at))}
+    </div><div class="modal-foot">${detailFoot("dok",d)}</div>`)};
+
+/* =====================================================================
+   ROL ARAYÜZÜ
+===================================================================== */
+async function resolveRole(email){
+  currentUser.email=email;
+  try{const users=await DB.list("kullanicilar");
+    const u=users.find(x=>(x.email||"").toLowerCase()===(email||"").toLowerCase());
+    currentUser.role=u?u.rol:"kullanici";
+  }catch(e){currentUser.role="kullanici"}
+  applyRoleUI();
+}
+function applyRoleUI(){
+  // kullanıcı rolü "Kullanıcılar" menüsünü görmez (yan menü + alt gezinme)
+  const nav=$("#navKul");if(nav)nav.style.display=isPrivileged()?"":"none";
+  const bn=$("#bnKul");if(bn)bn.style.display=isPrivileged()?"":"none";
+  // rol rozetini üst barda göster
+  const badge=$("#roleBadge");if(badge){const[rl,rc]=rolBadge[currentUser.role]||["Kullanıcı","b-gray"];
+    badge.className="badge "+rc;badge.textContent=rl;badge.style.display="inline-block"}
+}
+
+/* =====================================================================
+   NAVIGASYON
+===================================================================== */
+document.querySelectorAll("[data-nav]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.nav)));
+function go(v){
+  if(v==="kullanicilar"&&!isPrivileged()){toast("Bu bölüme erişiminiz yok","err");v="dashboard"}
+  document.querySelectorAll(".nav-item,.bn").forEach(n=>n.classList.toggle("active",n.dataset.nav===v));
+  document.querySelectorAll(".view").forEach(s=>s.classList.remove("active"));
+  $("#view-"+v).classList.add("active");
+  toggleMenu(false);
+  window.scrollTo({top:0,behavior:"smooth"});
+  ({dashboard:renderDash,etkinlikler:renderEtk,notlar:renderNot,dokumanlar:renderDok,kullanicilar:renderKul}[v])();
+}
+function toggleMenu(force){
+  const sb=$("#sidebar"),sc=$("#scrim");
+  const show=force===undefined?!sb.classList.contains("show"):force;
+  sb.classList.toggle("show",show);sc.classList.toggle("show",show);
+}
+// Telefon kart görünümü için her hücreye başlık etiketi ekle
+function labelize(tblId){
+  const table=$("#"+tblId).closest("table");if(!table)return;
+  const ths=[...table.querySelectorAll("thead th")].map(t=>t.textContent.trim());
+  table.querySelectorAll("tbody tr").forEach(tr=>{
+    if(tr.children.length!==ths.length)return;
+    [...tr.children].forEach((td,i)=>{if(ths[i])td.setAttribute("data-label",ths[i])});
+  });
+}
+
+/* =====================================================================
+   DASHBOARD
+===================================================================== */
+let chart1,chart2;
+async function renderDash(){
+  ["s-etk","s-tam","s-not","s-kul"].forEach(id=>$("#"+id).innerHTML=SKEL);
+  $("#dashRecent").innerHTML=skelRows(5,5);
+  const [etk,not,kul]=await Promise.all([DB.list("etkinlikler"),DB.list("notlar"),DB.list("kullanicilar")]);
+  $("#s-etk").textContent=etk.length;
+  $("#s-tam").textContent=etk.filter(e=>e.durum==="tamamlandi").length;
+  $("#s-not").textContent=not.length;
+  $("#s-kul").textContent=kul.length;
+  // recent
+  $("#dashRecent").innerHTML=etk.slice(0,5).map(e=>{const[dt,cl]=durumBadge[e.durum]||["-","b-gray"];
+    return `<tr><td><b>${esc(e.baslik)}</b></td><td>${esc(e.konu_adi||"-")}</td><td>${esc(turLabel[e.etkinlik_turu]||"-")}</td><td>${fmtDate(e.tarih_bitis)}</td><td><span class="badge ${cl}">${dt}</span></td></tr>`}).join("")||emptyRow(5);labelize("dashRecent");
+  // charts
+  const turCounts={};etk.forEach(e=>{const k=turLabel[e.etkinlik_turu]||"Diğer";turCounts[k]=(turCounts[k]||0)+1});
+  const durCounts={Planlandı:0,"Devam Ediyor":0,Tamamlandı:0};
+  etk.forEach(e=>{const[dt]=durumBadge[e.durum]||[];if(dt)durCounts[dt]++});
+  if(chart1)chart1.destroy();if(chart2)chart2.destroy();
+  const grad=document.getElementById("chartMain").getContext("2d");
+  const g=grad.createLinearGradient(0,0,0,180);g.addColorStop(0,"rgba(91,108,249,.85)");g.addColorStop(1,"rgba(143,91,249,.55)");
+  chart1=new Chart(grad,{type:"bar",data:{labels:Object.keys(turCounts),datasets:[{data:Object.values(turCounts),backgroundColor:g,borderRadius:10,barThickness:38}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:"#eef0f6"}},x:{grid:{display:false}}},animation:{duration:900}}});
+  chart2=new Chart(document.getElementById("chartDonut"),{type:"doughnut",data:{labels:Object.keys(durCounts),
+    datasets:[{data:Object.values(durCounts),backgroundColor:["#5b6cf9","#f59e0b","#22c55e"],borderWidth:0}]},
+    options:{cutout:"66%",plugins:{legend:{position:"bottom",labels:{padding:14,usePointStyle:true}}},animation:{duration:900}}});
+}
+function emptyRow(cols){return `<tr><td colspan="${cols}"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg><div>Henüz kayıt yok</div></div></td></tr>`}
+// Yükleme sırasında parıltılı iskelet satırlar
+function skelRows(cols,n=6){let out="";for(let i=0;i<n;i++){let tds="";for(let c=0;c<cols;c++){const w=35+((i*13+c*29)%50);tds+=`<td><span class="sk" style="width:${w}%"></span></td>`}out+=`<tr class="sk-row">${tds}</tr>`}return out}
+const SKEL="<span class='sk sk-lg' style='width:60px'></span>";
+
+/* =====================================================================
+   ETKINLIKLER
+===================================================================== */
+let etkCache=[];
+async function renderEtk(){
+  $("#tblEtk").innerHTML=skelRows(9);
+  etkCache=await DB.list("etkinlikler");
+  if(LIVE){ // checklist'i ayrı tablodan çekip iliştir
+    const{data:ck}=await sb.from("etkinlik_checklist").select("*").order("sira");
+    etkCache.forEach(e=>e.checklist=(ck||[]).filter(c=>c.etkinlik_id===e.id).map(c=>({id:c.id,metin:c.metin,tamam:c.tamam})));
+  }
+  $("#tblEtk").innerHTML=etkCache.map(e=>{const[dt,cl]=durumBadge[e.durum]||["-","b-gray"];
+    const ck=(e.checklist||[]);const done=ck.filter(c=>c.tamam).length;
+    return `<tr class="rowc" onclick="detail_etk('${e.id}')"><td><b>${esc(e.baslik)}</b><br><span style="color:var(--muted);font-size:12px">${esc((e.aciklama||"").slice(0,40))}</span></td>
+      <td>${esc(e.konu_adi||"-")}</td><td>${esc(turLabel[e.etkinlik_turu]||"-")}</td>
+      <td>${e.etiket?`<span class="tag">${esc(e.etiket)}</span>`:"-"}</td>
+      <td>${fmtDate(e.tarih_bitis)}</td><td><span class="badge ${cl}">${dt}</span></td>
+      <td>${ck.length?`<span class="badge b-sky">${done}/${ck.length}</span>`:'<span style="color:var(--muted)">-</span>'}</td>
+      <td>${whoCell(e.created_by)}</td>
+      <td>${actBtns("etk",e)}</td></tr>`}).join("")||emptyRow(9);labelize("tblEtk");
+}
+let modalChecklist=[];
+function etkForm(e={}){
+  modalChecklist=(e.checklist?JSON.parse(JSON.stringify(e.checklist)):[]);
+  return `<div class="modal-head"><h2>${e.id?"Etkinliği Düzenle":"Etkinlik Oluştur"}</h2><button class="close-x" onclick="closeModal()">✕</button></div>
+  <div class="modal-body">
+    <div class="field"><label>Başlık *</label><input id="f_baslik" value="${esc(e.baslik)}" placeholder="Etkinlik başlığı"/></div>
+    <div class="field"><label>Açıklama</label><textarea id="f_aciklama" placeholder="Açıklama...">${esc(e.aciklama)}</textarea></div>
+    <div class="field-row">
+      <div class="field"><label>Konu Adı</label><input id="f_konu" value="${esc(e.konu_adi)}" placeholder="Konu"/></div>
+      <div class="field"><label>Etiket</label><input id="f_etiket" value="${esc(e.etiket)}" placeholder="etiket"/></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Etkinlik Türü</label><select id="f_tur">
+        ${["toplanti","egitim","denetim","diger"].map(t=>`<option value="${t}" ${e.etkinlik_turu===t?"selected":""}>${turLabel[t]}</option>`).join("")}</select></div>
+      <div class="field"><label>Bitiş Tarihi</label><input type="date" id="f_tarih" value="${esc(e.tarih_bitis)}"/></div>
+    </div>
+    <div class="field"><label>Durum</label><select id="f_durum">
+      ${Object.entries(durumBadge).map(([k,v])=>`<option value="${k}" ${e.durum===k?"selected":""}>${v[0]}</option>`).join("")}</select></div>
+    <div class="field"><label>Checklist</label><div id="chkList"></div>
+      <button class="btn btn-ghost" style="padding:8px 14px;font-size:13px" onclick="addChk()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Madde ekle</button></div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Vazgeç</button>
+    <button class="btn btn-primary" onclick="saveEtk('${e.id||""}')">Kaydet</button></div>`;
+}
+function drawChk(){$("#chkList").innerHTML=modalChecklist.map((c,i)=>`<div class="chk-item ${c.tamam?"done":""}">
+  <input type="checkbox" ${c.tamam?"checked":""} onchange="modalChecklist[${i}].tamam=this.checked;drawChk()"/>
+  <input type="text" value="${esc(c.metin)}" oninput="modalChecklist[${i}].metin=this.value" placeholder="Madde..."/>
+  <span class="rm" onclick="modalChecklist.splice(${i},1);drawChk()">✕</span></div>`).join("")}
+function addChk(){modalChecklist.push({id:uid(),metin:"",tamam:false});drawChk()}
+function openEtkinlik(){openModal(etkForm(),true);drawChk()}
+window.edit_etk=id=>{const e=etkCache.find(x=>x.id===id);openModal(etkForm(e),true);drawChk()};
+window.del_etk=id=>{const e=etkCache.find(x=>x.id===id);confirmDel("etkinlikler",id,e.baslik,renderEtk)};
+async function saveEtk(id){
+  const b=$("#f_baslik").value.trim();if(!b)return toast("Başlık zorunlu","err");
+  const row={baslik:b,aciklama:$("#f_aciklama").value.trim(),konu_adi:$("#f_konu").value.trim(),
+    etiket:$("#f_etiket").value.trim(),etkinlik_turu:$("#f_tur").value,tarih_bitis:$("#f_tarih").value||null,
+    durum:$("#f_durum").value,checklist:modalChecklist.filter(c=>c.metin.trim())};
+  if(!id)row.created_by=currentUser.email;
+  try{
+    const chk=row.checklist;
+    let saved;
+    if(LIVE){
+      delete row.checklist; // etkinlik_checklist ayrı tabloya yazılır
+      saved=id?await DB.update("etkinlikler",id,row):await DB.insert("etkinlikler",row);
+      const eid=saved.id;
+      // mevcut maddeleri temizle, yenilerini ekle (basit senkron)
+      await sb.from("etkinlik_checklist").delete().eq("etkinlik_id",eid);
+      if(chk.length){
+        await sb.from("etkinlik_checklist").insert(
+          chk.map((c,i)=>({etkinlik_id:eid,metin:c.metin.trim(),tamam:!!c.tamam,sira:i})));
+      }
+    }else{
+      if(id)await DB.update("etkinlikler",id,row);else await DB.insert("etkinlikler",row);
+    }
+    closeModal();toast(id?"Güncellendi":"Etkinlik eklendi","ok");renderEtk();
+  }catch(e){toast(e.message,"err")}
+}
+
+/* =====================================================================
+   NOTLAR
+===================================================================== */
+let notCache=[];
+async function renderNot(){$("#tblNot").innerHTML=skelRows(6);notCache=await DB.list("notlar");
+  $("#tblNot").innerHTML=notCache.map(n=>`<tr class="rowc" onclick="detail_not('${n.id}')"><td><b>${esc(n.baslik)}</b></td><td style="color:var(--muted)">${esc((n.aciklama||"").slice(0,60))}</td>
+    <td>${n.etiket?`<span class="tag">${esc(n.etiket)}</span>`:"-"}</td><td>${whoCell(n.created_by)}</td><td>${fmtDate(n.created_at)}</td><td>${actBtns("not",n)}</td></tr>`).join("")||emptyRow(6);labelize("tblNot")}
+function notForm(n={}){return `<div class="modal-head"><h2>${n.id?"Notu Düzenle":"Not Ekle"}</h2><button class="close-x" onclick="closeModal()">✕</button></div>
+  <div class="modal-body">
+    <div class="field"><label>Başlık *</label><input id="n_baslik" value="${esc(n.baslik)}" placeholder="Not başlığı"/></div>
+    <div class="field"><label>Açıklama</label><textarea id="n_aciklama" placeholder="İçerik...">${esc(n.aciklama)}</textarea></div>
+    <div class="field"><label>Etiket</label><input id="n_etiket" value="${esc(n.etiket)}" placeholder="etiket"/></div>
+  </div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Vazgeç</button>
+  <button class="btn btn-primary" onclick="saveNot('${n.id||""}')">Kaydet</button></div>`}
+function openNot(){openModal(notForm())}
+window.edit_not=id=>openModal(notForm(notCache.find(x=>x.id===id)));
+window.del_not=id=>{const n=notCache.find(x=>x.id===id);confirmDel("notlar",id,n.baslik,renderNot)};
+async function saveNot(id){const b=$("#n_baslik").value.trim();if(!b)return toast("Başlık zorunlu","err");
+  const row={baslik:b,aciklama:$("#n_aciklama").value.trim(),etiket:$("#n_etiket").value.trim()};
+  if(!id)row.created_by=currentUser.email;
+  try{if(id)await DB.update("notlar",id,row);else await DB.insert("notlar",row);closeModal();toast(id?"Güncellendi":"Not eklendi","ok");renderNot()}catch(e){toast(e.message,"err")}}
+
+/* =====================================================================
+   DOKUMANLAR
+===================================================================== */
+let dokCache=[];
+async function renderDok(){$("#tblDok").innerHTML=skelRows(7);dokCache=await DB.list("dokumanlar");
+  $("#tblDok").innerHTML=dokCache.map(d=>`<tr class="rowc" onclick="detail_dok('${d.id}')"><td><b>${esc(d.ad)}</b></td><td style="color:var(--muted)">${esc((d.aciklama||"").slice(0,50))}</td>
+    <td>${d.etiket?`<span class="tag">${esc(d.etiket)}</span>`:"-"}</td><td><span class="badge b-gray">${esc(d.tur||"dosya")}</span></td>
+    <td>${whoCell(d.created_by)}</td><td>${fmtDate(d.created_at)}</td><td>${actBtns("dok",d)}</td></tr>`).join("")||emptyRow(7);labelize("tblDok")}
+function dokForm(d={}){return `<div class="modal-head"><h2>${d.id?"Dökümanı Düzenle":"Döküman Ekle"}</h2><button class="close-x" onclick="closeModal()">✕</button></div>
+  <div class="modal-body">
+    <div class="field"><label>Ad *</label><input id="d_ad" value="${esc(d.ad)}" placeholder="Dosya adı"/></div>
+    <div class="field"><label>Açıklama</label><textarea id="d_aciklama" placeholder="Açıklama...">${esc(d.aciklama)}</textarea></div>
+    <div class="field-row">
+      <div class="field"><label>Etiket</label><input id="d_etiket" value="${esc(d.etiket)}" placeholder="etiket"/></div>
+      <div class="field"><label>Tür</label><input id="d_tur" value="${esc(d.tur)}" placeholder="pdf, docx, resim..."/></div>
+    </div>
+    <div class="field"><label>Dosya (opsiyonel)</label><input type="file" id="d_file" onchange="if(this.files[0]){document.getElementById('d_ad').value=document.getElementById('d_ad').value||this.files[0].name;document.getElementById('d_tur').value=this.files[0].name.split('.').pop()}"/>
+      <small style="color:var(--muted);font-size:12px">Demo modda dosya adı kaydedilir. Supabase'de Storage'a yüklenir.</small></div>
+  </div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Vazgeç</button>
+  <button class="btn btn-primary" onclick="saveDok('${d.id||""}')">Kaydet</button></div>`}
+function openDok(){openModal(dokForm())}
+window.edit_dok=id=>openModal(dokForm(dokCache.find(x=>x.id===id)));
+window.del_dok=id=>{const d=dokCache.find(x=>x.id===id);confirmDel("dokumanlar",id,d.ad,renderDok)};
+async function saveDok(id){const a=$("#d_ad").value.trim();if(!a)return toast("Ad zorunlu","err");
+  const row={ad:a,aciklama:$("#d_aciklama").value.trim(),etiket:$("#d_etiket").value.trim(),tur:$("#d_tur").value.trim()};
+  if(!id)row.created_by=currentUser.email;
+  const file=$("#d_file")?.files?.[0];
+  try{
+    if(LIVE && file){ // dosyayı Storage'a yükle
+      const path=Date.now()+"-"+file.name.replace(/[^\w.\-]/g,"_");
+      const{error:upErr}=await sb.storage.from("dokumanlar").upload(path,file);
+      if(upErr)throw upErr;
+      row.dosya_yolu=path;row.boyut=file.size;row.tur=row.tur||file.type;
+    }
+    if(id)await DB.update("dokumanlar",id,row);else await DB.insert("dokumanlar",row);
+    closeModal();toast(id?"Güncellendi":"Döküman eklendi","ok");renderDok();
+  }catch(e){toast(e.message,"err")}}
+
+/* =====================================================================
+   KULLANICILAR
+===================================================================== */
+let kulCache=[];
+async function renderKul(){$("#tblKul").innerHTML=skelRows(6);kulCache=await DB.list("kullanicilar");
+  $("#tblKul").innerHTML=kulCache.map(u=>{const[rl,rc]=rolBadge[u.rol]||["-","b-gray"];
+    return `<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:34px;height:34px;font-size:13px">${esc((u.ad_soyad||"?").charAt(0))}</div><b>${esc(u.ad_soyad)}</b></div></td>
+    <td>${esc(u.email)}</td><td><span class="badge ${rc}">${rl}</span></td><td>${esc(u.telefon||"-")}</td>
+    <td><span class="badge ${u.durum==="aktif"?"b-green":"b-gray"}">${u.durum==="aktif"?"Aktif":"Pasif"}</span></td>
+    <td>${actBtns("kul",u)}</td></tr>`}).join("")||emptyRow(6);labelize("tblKul")}
+function kulForm(u={}){return `<div class="modal-head"><h2>${u.id?"Kullanıcıyı Düzenle":"Kullanıcı Oluştur"}</h2><button class="close-x" onclick="closeModal()">✕</button></div>
+  <div class="modal-body">
+    <div class="field"><label>Ad Soyad *</label><input id="u_ad" value="${esc(u.ad_soyad)}" placeholder="Ad Soyad"/></div>
+    <div class="field"><label>E-posta *</label><input id="u_email" value="${esc(u.email)}" placeholder="ornek@elektigo.com"/></div>
+    <div class="field-row">
+      <div class="field"><label>Rol</label><select id="u_rol">
+        ${Object.entries(rolBadge).map(([k,v])=>`<option value="${k}" ${u.rol===k?"selected":""}>${v[0]}</option>`).join("")}</select></div>
+      <div class="field"><label>Durum</label><select id="u_durum">
+        <option value="aktif" ${u.durum!=="pasif"?"selected":""}>Aktif</option><option value="pasif" ${u.durum==="pasif"?"selected":""}>Pasif</option></select></div>
+    </div>
+    <div class="field"><label>Telefon</label><input id="u_tel" value="${esc(u.telefon)}" placeholder="05xx xxx xx xx"/></div>
+  </div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Vazgeç</button>
+  <button class="btn btn-primary" onclick="saveKul('${u.id||""}')">Kaydet</button></div>`}
+function openKul(){openModal(kulForm())}
+window.edit_kul=id=>openModal(kulForm(kulCache.find(x=>x.id===id)));
+window.del_kul=id=>{const u=kulCache.find(x=>x.id===id);confirmDel("kullanicilar",id,u.ad_soyad,renderKul)};
+async function saveKul(id){const a=$("#u_ad").value.trim(),em=$("#u_email").value.trim();
+  if(!a)return toast("Ad Soyad zorunlu","err");if(!em)return toast("E-posta zorunlu","err");
+  const row={ad_soyad:a,email:em,rol:$("#u_rol").value,durum:$("#u_durum").value,telefon:$("#u_tel").value.trim()};
+  try{if(id)await DB.update("kullanicilar",id,row);else await DB.insert("kullanicilar",row);closeModal();toast(id?"Güncellendi":"Kullanıcı oluşturuldu","ok");renderKul()}catch(e){toast(e.message,"err")}}
+
+/* =====================================================================
+   ARAMA (basit satır filtreleme)
+===================================================================== */
+$("#globalSearch").addEventListener("input",function(){const q=this.value.toLowerCase();
+  const active=document.querySelector(".view.active tbody");if(!active)return;
+  active.querySelectorAll("tr").forEach(tr=>{tr.style.display=tr.textContent.toLowerCase().includes(q)?"":"none"})});
+
+/* =====================================================================
+   BAŞLANGIÇ
+===================================================================== */
+function initBanner(){
+  const dot=$("#connDot"),lab=$("#connLabel"),bn=$("#connBanner");
+  if(LIVE){dot.style.background="var(--green)";lab.textContent="Supabase bağlı";
+    bn.innerHTML=``} // bağlıyken banner gösterme; durum sol altta görünür
+  else{dot.style.background="var(--amber)";lab.textContent="Demo modu";
+    bn.innerHTML=`<div class="conn demo">🟡 Demo modu — veriler tarayıcınızda (localStorage) tutuluyor. Buluta geçmek için admin.html içindeki SUPABASE bilgilerini doldurun.<button onclick="resetDemo()">Demoyu sıfırla</button></div>`}
+}
+window.resetDemo=()=>{localStorage.removeItem(LS_KEY);toast("Demo verisi sıfırlandı","ok");go("dashboard")};
+
+/* =====================================================================
+   KİMLİK DOĞRULAMA (LOGIN)
+   - Supabase modunda: gerçek Supabase Auth (e-posta + şifre).
+     Önce Supabase panelinde Authentication > Users'tan kullanıcı ekleyin.
+   - Demo modunda: şifre "admin" ile giriş.
+===================================================================== */
+const DEMO_PASS="admin";
+const loginScreen=$("#loginScreen"), loginForm=$("#loginForm"), loginErr=$("#loginErr"),
+      loginSubmit=$("#loginSubmit"), loginFoot=$("#loginFoot");
+
+loginFoot.textContent = LIVE
+  ? "Sebinsiad-OSB · Güvenli giriş"
+  : "Demo modu · şifre: admin";
+
+function showErr(msg){loginErr.textContent=msg;loginErr.classList.add("show")}
+function clearErr(){loginErr.classList.remove("show")}
+function setLoading(on){loginSubmit.innerHTML = on ? '<span class="spinner"></span>' : 'Giriş Yap';loginSubmit.disabled=on}
+
+async function startApp(email){
+  const name=(email||"kullanici").split("@")[0];
+  $("#uName").textContent=name.charAt(0).toUpperCase()+name.slice(1);
+  $("#uMail").textContent=email||"—";
+  $("#uAvatar").textContent=(name.charAt(0)||"K").toUpperCase();
+  loginScreen.style.opacity="0";loginScreen.style.transition="opacity .4s";
+  setTimeout(()=>loginScreen.style.display="none",400);
+  document.querySelector(".app").classList.add("ready");
+  initBanner();
+  await resolveRole(email);   // rolü belirle, menüyü ona göre ayarla
+  go("dashboard");
+}
+
+async function tryAutoLogin(){
+  if(LIVE){
+    const{data}=await sb.auth.getSession();
+    if(data.session){startApp(data.session.user.email);return}
+  }else if(sessionStorage.getItem("demo_auth")==="1"){
+    startApp(sessionStorage.getItem("demo_mail")||"demo@elektigo.com");return;
+  }
+  // giriş gerekli — login ekranı zaten görünür
+  document.querySelector(".app").classList.add("ready");
+}
+
+loginForm.addEventListener("submit",async e=>{
+  e.preventDefault();clearErr();
+  const email=$("#li_email").value.trim(), pass=$("#li_pass").value;
+  if(!email||!pass){showErr("E-posta ve şifre gerekli.");return}
+  setLoading(true);
+  try{
+    if(LIVE){
+      const{error}=await sb.auth.signInWithPassword({email,password:pass});
+      if(error)throw error;
+      startApp(email);
+    }else{
+      await new Promise(r=>setTimeout(r,450)); // his amacıyla küçük gecikme
+      if(pass!==DEMO_PASS)throw new Error("Şifre hatalı. (Demo şifresi: admin)");
+      sessionStorage.setItem("demo_auth","1");sessionStorage.setItem("demo_mail",email);
+      startApp(email);
+    }
+  }catch(err){
+    const m=(err.message||"").toLowerCase();
+    showErr(m.includes("invalid")?"E-posta veya şifre hatalı.":err.message);
+    setLoading(false);
+  }
+});
+
+$("#logoutBtn").addEventListener("click",async()=>{
+  if(LIVE)await sb.auth.signOut();
+  else sessionStorage.removeItem("demo_auth");
+  location.reload();
+});
+
+tryAutoLogin();
+</script>
+</body>
+</html>
