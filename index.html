@@ -245,7 +245,12 @@ tbody tr:hover{box-shadow:inset 3px 0 0 var(--brand)}
 .logout-btn svg{width:18px;height:18px}
 
 /* ===================== LOGO GÖRÜNTÜSÜ ===================== */
-.mark img{width:100%;height:100%;object-fit:contain;border-radius:inherit;padding:3px;display:block}
+/* Logo görseli varsa mor rozet arka planını ve gölgeyi kaldır */
+.mark:has(img){background:none!important;box-shadow:none!important;border-radius:0}
+.mark img{width:100%;height:100%;object-fit:contain;display:block}
+/* Logolu markayı biraz büyüt ki net görünsün */
+.logo .mark:has(img){width:40px;height:40px}
+.login-brand .mark:has(img){width:52px;height:52px}
 
 /* ===================== SHIMMER / SKELETON ===================== */
 .sk{display:inline-block;height:14px;border-radius:7px;
